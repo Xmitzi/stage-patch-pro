@@ -34,14 +34,39 @@ const MIC_OPTIONS=[
   {divider:true,label:"── SENNHEISER ──"},
   "MKH416","E901","E604","E904","MD441","MD421","E902","E602","E906",
   {divider:true,label:"── SHURE ──"},
-  "B98 (old)","B98 (new)","KSM9","B91","B91A","B87","KSM137","KSM32","SM81","SM91","Beta52A","Beta56A","Beta57A","Beta58A","SM57","SM58",
+  "B98 (old)","B98 (new)","KSM9","B91","B91A","B87","KSM137","KSM32","SM81","SM91","B52A","B56A","B57A","B58A","SM57","SM58",
   {divider:true,label:"── OTHER ──"},
   "DI","Line","Other",
 ];
 const STAND_OPTIONS=["","Straight","Boom","Short Boom","Desktop","Clip","Floor","None"];
+// Inline SVG bass guitar icon
+const BassIcon=({size=26,glow=false})=>(
+  <svg width={size} height={size} viewBox="0 0 32 40" fill="none" style={{filter:glow?"drop-shadow(0 0 6px #f59e0b)":"none",transition:"filter 0.15s"}}>
+    {/* Body */}
+    <ellipse cx="16" cy="29" rx="9" ry="7" fill="#8B4513" stroke="#D2691E" strokeWidth="1.2"/>
+    <ellipse cx="13" cy="27" rx="3" ry="2.5" fill="#A0522D" opacity="0.6"/>
+    {/* Neck */}
+    <rect x="14" y="8" width="4" height="21" rx="2" fill="#6B3410" stroke="#D2691E" strokeWidth="1"/>
+    {/* Headstock */}
+    <rect x="11" y="3" width="10" height="7" rx="2" fill="#5a2d0c" stroke="#D2691E" strokeWidth="1"/>
+    {/* Tuning pegs */}
+    <circle cx="11" cy="5" r="1.5" fill="#ccc"/>
+    <circle cx="11" cy="9" r="1.5" fill="#ccc"/>
+    <circle cx="21" cy="5" r="1.5" fill="#ccc"/>
+    <circle cx="21" cy="9" r="1.5" fill="#ccc"/>
+    {/* Strings */}
+    <line x1="14.5" y1="7" x2="14.5" y2="29" stroke="#ccc" strokeWidth="0.5" opacity="0.8"/>
+    <line x1="16" y1="7" x2="16" y2="29" stroke="#ccc" strokeWidth="0.5" opacity="0.8"/>
+    <line x1="17.5" y1="7" x2="17.5" y2="29" stroke="#ccc" strokeWidth="0.5" opacity="0.8"/>
+    <line x1="19" y1="7" x2="19" y2="29" stroke="#ccc" strokeWidth="0.5" opacity="0.8"/>
+    {/* Sound hole */}
+    <circle cx="16" cy="29" r="2.5" fill="#3a1a05" stroke="#D2691E" strokeWidth="0.8"/>
+  </svg>
+);
+
 const INSTRUMENTS=[
   {id:"drums",label:"Drums",icon:"🥁"},{id:"kick",label:"Kick",icon:"🪘"},
-  {id:"guitar",label:"Gtr Amp",icon:"🎸"},{id:"bass",label:"Bass Amp",icon:"🔊"},
+  {id:"guitar",label:"Gtr Amp",icon:"🎸"},{id:"bass",label:"Bass Amp",icon:"__BASS__"},
   {id:"keys",label:"Keys",icon:"🎹"},{id:"vocal",label:"Vocal",icon:"🎤"},
   {id:"monitor",label:"Monitor",icon:"📢"},{id:"di",label:"DI Box",icon:"📦"},
   {id:"violin",label:"Violin",icon:"🎻"},{id:"trumpet",label:"Trumpet",icon:"🎺"},
@@ -176,11 +201,21 @@ function StagePlot({plot,onChange}){
               style={{background:"#0d0f14",border:"1px solid #1e2028",borderRadius:"5px",padding:"5px 8px",cursor:"pointer",color:"#cbd5e1",fontSize:"11px",textAlign:"left",display:"flex",alignItems:"center",gap:"6px"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor="#f59e0b44";e.currentTarget.style.color="#f8fafc";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor="#1e2028";e.currentTarget.style.color="#cbd5e1";}}>
-              {instr.icon} {instr.label}
+              {instr.icon==="__BASS__" ? <BassIcon size={16}/> : instr.icon} {instr.label}
             </button>
           ))}
         </div>
-        {selectedId&&<button onClick={()=>removeItem(selectedId)} style={{marginTop:"10px",background:"#ef444422",border:"1px solid #ef4444",color:"#ef4444",borderRadius:"6px",padding:"7px",cursor:"pointer",fontSize:"11px"}}>🗑️ Remove</button>}
+        {selectedId&&(
+          <div style={{display:"flex",flexDirection:"column",gap:"5px",marginTop:"10px"}}>
+            <button onClick={()=>{const it=plot.items.find(i=>i.id===selectedId);if(it){setEditingId(selectedId);setEditLabel(it.label);}}} style={{background:"#f59e0b22",border:"1px solid #f59e0b66",color:"#f59e0b",borderRadius:"6px",padding:"6px",cursor:"pointer",fontSize:"11px"}}>✏️ Rename</button>
+            <div style={{display:"flex",gap:"4px",alignItems:"center",justifyContent:"center"}}>
+              <button onClick={()=>onChange({...plot,items:plot.items.map(it=>it.id===selectedId?{...it,size:Math.max(0.5,(it.size||1)-0.25)}:it)})} style={{background:"#1e2028",border:"1px solid #2a2d35",color:"#e2e8f0",borderRadius:"4px",width:"26px",height:"26px",cursor:"pointer",fontSize:"16px",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+              <span style={{fontSize:"10px",color:"#64748b",minWidth:"28px",textAlign:"center"}}>{Math.round((plot.items.find(i=>i.id===selectedId)?.size||1)*100)}%</span>
+              <button onClick={()=>onChange({...plot,items:plot.items.map(it=>it.id===selectedId?{...it,size:Math.min(3,(it.size||1)+0.25)}:it)})} style={{background:"#1e2028",border:"1px solid #2a2d35",color:"#e2e8f0",borderRadius:"4px",width:"26px",height:"26px",cursor:"pointer",fontSize:"16px",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+            </div>
+            <button onClick={()=>removeItem(selectedId)} style={{background:"#ef444422",border:"1px solid #ef4444",color:"#ef4444",borderRadius:"6px",padding:"6px",cursor:"pointer",fontSize:"11px"}}>🗑️ Remove</button>
+          </div>
+        )}
       </div>
       <div style={{flex:1,padding:"12px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
         <div style={{fontSize:"10px",color:"#64748b",marginBottom:"6px",letterSpacing:"0.1em"}}>AUDIENCE ▼ — {plot.stageW}m × {plot.stageD}m</div>
@@ -194,9 +229,13 @@ function StagePlot({plot,onChange}){
             <div key={item.id}
               onMouseDown={e=>startDrag(e,item.id)}
               onTouchStart={e=>{e.preventDefault();dragRef.current={id:item.id,rect:stageRef.current.getBoundingClientRect()};setSelectedId(item.id);}}
-              onDoubleClick={()=>{setEditingId(item.id);setEditLabel(item.label);}}
+              onDoubleClick={(e)=>{e.stopPropagation();dragRef.current=null;setEditingId(item.id);setEditLabel(item.label);}}
               style={{position:"absolute",left:`${item.x}%`,top:`${item.y}%`,transform:"translate(-50%,-50%)",cursor:"grab",userSelect:"none",display:"flex",flexDirection:"column",alignItems:"center",zIndex:selectedId===item.id?10:1}}>
-              <div style={{fontSize:"26px",filter:selectedId===item.id?"drop-shadow(0 0 8px #f59e0b)":"none",transition:"filter 0.15s"}}>{item.icon}</div>
+              <div style={{fontSize:`${Math.round(26*(item.size||1))}px`,lineHeight:1,transition:"font-size 0.1s"}}>
+                {item.icon==="__BASS__"
+                  ? <BassIcon size={Math.round(32*(item.size||1))} glow={selectedId===item.id}/>
+                  : <span style={{filter:selectedId===item.id?"drop-shadow(0 0 8px #f59e0b)":"none",transition:"filter 0.15s"}}>{item.icon}</span>}
+              </div>
               {editingId===item.id
                 ?<input autoFocus value={editLabel} onChange={e=>setEditLabel(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
                     style={{background:"#0a0c10",border:"1px solid #f59e0b",color:"#f8fafc",borderRadius:"3px",padding:"1px 4px",fontSize:"10px",width:"72px",textAlign:"center",outline:"none",fontFamily:"inherit"}}/>
@@ -204,7 +243,7 @@ function StagePlot({plot,onChange}){
             </div>
           ))}
         </div>
-        <div style={{fontSize:"10px",color:"#475569",marginTop:"6px"}}>Drag to move · Double-click to rename · Select then 🗑️ to delete</div>
+        <div style={{fontSize:"10px",color:"#475569",marginTop:"6px"}}>Drag to move · Double-click or ✏️ to rename · − + to resize</div>
       </div>
     </div>
   );
@@ -270,7 +309,6 @@ function MicSearch({value, onChange}) {
             <div key={m} onMouseDown={e=>{e.preventDefault();commit(m);}}
               style={{padding:"6px 10px",fontSize:"12px",fontFamily:"monospace",cursor:"pointer",color: i===highlighted?"#f59e0b":"#e2e8f0",background: i===highlighted?"#1e2028":"transparent",transition:"background 0.1s"}}
               onMouseEnter={()=>setHighlighted(i)}>
-              {/* Bold the matching part */}
               {query.trim()===""
                 ? m
                 : (() => {
