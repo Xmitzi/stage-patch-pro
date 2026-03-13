@@ -26,7 +26,7 @@ const MIC_OPTIONS=[
   {divider:true,label:"── MILAB ──"},
   "Milab VM44",
   {divider:true,label:"── NEUMANN ──"},
-  "KM140","KMS105","KM184","TLM103",
+  "KM140","KMS105","KM188","TLM103",
   {divider:true,label:"── SAMSON ──"},
   "Samson CO1","Samson CO2","Samson SP01",
   {divider:true,label:"── SE ELECTRONICS ──"},
@@ -601,18 +601,15 @@ function generatePDF(project){
   const sbColors={SB1:"#f59e0b",SB2:"#22c55e",SB3:"#3b82f6",SB4:"#ef4444",SB5:"#888",DIR:"#a855f7"};
 
   // Collect all slots with their labels
-  const days = isFestival
-    ? fd.days.map(day=>({
-        dayLabel: day.dayLabel,
-        slots: day.slots.map(slot=>({
-          title:`${fd.festName}${fd.stageName?" · "+fd.stageName:""} — ${day.dayLabel}`,
-          bandName: slot.bandName||"(no name)",
-          rows: slot.patchRows,
-        }))
-      }))
-    : [{dayLabel:"", slots:[{title:project.name, bandName:project.singleSlot.bandName||"(no name)", rows:project.singleSlot.patchRows}]}];
+  const sheets = isFestival
+    ? fd.days.flatMap(day=>day.slots.map(slot=>({
+        title:`${fd.festName}${fd.stageName?" · "+fd.stageName:""} — ${day.dayLabel}`,
+        bandName: slot.bandName||"(no name)",
+        rows: slot.patchRows,
+      })))
+    : [{title:project.name, bandName:project.singleSlot.bandName||"(no name)", rows:project.singleSlot.patchRows}];
 
-  const landscape = true;
+  const landscape = sheets.length > 1;
 
   // ── Build per-day mic summary pages (festival only) ────────────────────────
   const buildDaySummaryPages = () => {
@@ -705,22 +702,14 @@ function generatePDF(project){
     </tr>`;
   }).join("");
 
-  const sheetsHTML = days.map((day, di)=>`
-    <div style="${di>0?"page-break-before:always;":""}padding-top:${di>0?"8mm":"0"}">
-      <div class="page-title">🎚️ ${project.name}${day.dayLabel?" — "+day.dayLabel:""}</div>
-      <div class="subtitle">STAGE PATCH PRO · Generated ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
-      <hr style="border:none;border-top:2px solid #f59e0b33;margin:4px 0 8px"/>
-      <div style="display:flex;gap:6px;align-items:flex-start;">
-        ${day.slots.map(s=>`
-          <div style="flex:1;min-width:0;">
-            <div class="header">${s.title}</div>
-            <div class="band-title">${s.bandName}</div>
-            <table>
-              <thead><tr><th>CH</th><th>SB</th><th>IN</th><th>INSTRUMENT</th><th>MIC</th><th>STAND</th><th>NOTES</th></tr></thead>
-              <tbody>${renderRows(s.rows)}</tbody>
-            </table>
-          </div>`).join("")}
-      </div>
+  const sheetsHTML = sheets.map(s=>`
+    <div class="sheet">
+      <div class="header">${s.title}</div>
+      <div class="band-title">${s.bandName}</div>
+      <table>
+        <thead><tr><th>CH</th><th>SB</th><th>IN</th><th>INSTRUMENT</th><th>MIC</th><th>STAND</th><th>NOTES</th></tr></thead>
+        <tbody>${renderRows(s.rows)}</tbody>
+      </table>
     </div>
   `).join("");
 
@@ -730,27 +719,23 @@ function generatePDF(project){
     <body>
       <div class="page-title">🎚️ ${project.name}</div>
       <div class="subtitle">STAGE PATCH PRO · Generated ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
-      ${sheetsHTML}
+      <div style="${landscape?"display:flex;flex-wrap:nowrap;gap:4px;align-items:flex-start;":""}">
+        ${sheetsHTML}
+      </div>
       ${buildDaySummaryPages()}
     </body></html>`;
 
   // Use Blob URL — avoids popup blockers
-  const w = window.open("", "_blank");
-if(w){
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-} else {
   const blob = new Blob([html], {type:"text/html"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = project.name + "-patch.html";
+  a.target = "_blank";
+  a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 5000);
-}
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────────
