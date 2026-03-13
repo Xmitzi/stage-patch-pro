@@ -36,7 +36,7 @@ const MIC_OPTIONS=[
   {divider:true,label:"── SHURE ──"},
   "B98 (old)","B98 (new)","KSM9","B91","B91A","B87","KSM137","KSM32","SM81","SM91","B52A","B56A","B57A","B58A","SM57","SM58",
   {divider:true,label:"── OTHER ──"},
-  "DI","Line","Other",
+  "DI","Line","Wireless","Other",
 ];
 const STAND_OPTIONS=["","Straight","Boom","Short Boom","Desktop","Clip","Floor","None"];
 // Inline SVG bass guitar icon
@@ -74,6 +74,39 @@ const INSTRUMENTS=[
   {id:"sub",label:"Sub",icon:"💥"},{id:"combo",label:"Combo",icon:"📻"},
   {id:"pedal",label:"Pedalboard",icon:"⬛"},{id:"piano",label:"Piano",icon:"🎵"},
 ];
+
+// Stage plot sidebar items — stageboxes + generic box
+const STAGE_SB_ITEMS = [
+  {id:"sb1box",label:"SB1",icon:"__SB__",sbKey:"SB1"},
+  {id:"sb2box",label:"SB2",icon:"__SB__",sbKey:"SB2"},
+  {id:"sb3box",label:"SB3",icon:"__SB__",sbKey:"SB3"},
+  {id:"sb4box",label:"SB4",icon:"__SB__",sbKey:"SB4"},
+  {id:"sb5box",label:"SB5",icon:"__SB__",sbKey:"SB5"},
+  {id:"dirbox",label:"DIR",icon:"__SB__",sbKey:"DIR"},
+  {id:"emptybox",label:"Box",icon:"__BOX__",sbKey:null},
+];
+
+function StageItemIcon({item,selected,size=1}){
+  if(item.icon==="__SB__"){
+    const sb=getSB(item.sbKey);
+    const w=Math.round(54*size), h=Math.round(32*size), fs=Math.round(11*size);
+    return(
+      <div style={{width:w,height:h,border:`2px solid ${sb.color}`,borderRadius:"4px",background:sb.color+"33",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:selected?`0 0 8px ${sb.color}`:"none",transition:"box-shadow 0.15s",flexShrink:0}}>
+        <span style={{fontSize:fs,fontWeight:"800",color:sb.color,fontFamily:"monospace",letterSpacing:"0.05em"}}>{item.label}</span>
+      </div>
+    );
+  }
+  if(item.icon==="__BOX__"){
+    const w=Math.round(54*size), h=Math.round(32*size), fs=Math.round(10*size);
+    return(
+      <div style={{width:w,height:h,border:"2px dashed #475569",borderRadius:"4px",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:selected?"0 0 8px #94a3b8":"none",transition:"box-shadow 0.15s",flexShrink:0}}>
+        <span style={{fontSize:fs,color:"#64748b",fontFamily:"monospace"}}></span>
+      </div>
+    );
+  }
+  if(item.icon==="__BASS__") return <BassIcon size={Math.round(26*size)} glow={selected}/>;
+  return <span style={{fontSize:Math.round(26*size),filter:selected?"drop-shadow(0 0 8px #f59e0b)":"none",transition:"filter 0.15s"}}>{item.icon}</span>;
+}
 
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const makePatchRows=(n=24)=>Array.from({length:n},(_,i)=>({id:uid(),channel:i+1,stagebox:"SB1",input:i+1,instrument:"",mic:"",stand:"",notes:""}));
@@ -194,6 +227,19 @@ function StagePlot({plot,onChange}){
             </div>
           ))}
         </div>
+        <div style={S.label}>STAGEBOXES</div>
+        <div style={{display:"flex",flexDirection:"column",gap:"3px",marginBottom:"10px"}}>
+          {STAGE_SB_ITEMS.map(item=>{
+            const sb=item.sbKey?getSB(item.sbKey):null;
+            return(
+              <button key={item.id} onClick={()=>addItem(item)}
+                style={{background:"#0d0f14",border:`1px solid ${sb?sb.color+"44":"#2a2d35"}`,borderRadius:"5px",padding:"4px 8px",cursor:"pointer",color:sb?sb.color:"#64748b",fontSize:"11px",textAlign:"left",display:"flex",alignItems:"center",gap:"7px",fontWeight:"700",fontFamily:"monospace"}}>
+                <StageItemIcon item={item} selected={false} size={0.55}/>
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
         <div style={S.label}>ADD ELEMENT</div>
         <div style={{display:"flex",flexDirection:"column",gap:"3px",flex:1,overflowY:"auto"}}>
           {INSTRUMENTS.map(instr=>(
@@ -231,11 +277,7 @@ function StagePlot({plot,onChange}){
               onTouchStart={e=>{e.preventDefault();dragRef.current={id:item.id,rect:stageRef.current.getBoundingClientRect()};setSelectedId(item.id);}}
               onDoubleClick={(e)=>{e.stopPropagation();dragRef.current=null;setEditingId(item.id);setEditLabel(item.label);}}
               style={{position:"absolute",left:`${item.x}%`,top:`${item.y}%`,transform:"translate(-50%,-50%)",cursor:"grab",userSelect:"none",display:"flex",flexDirection:"column",alignItems:"center",zIndex:selectedId===item.id?10:1}}>
-              <div style={{fontSize:`${Math.round(26*(item.size||1))}px`,lineHeight:1,transition:"font-size 0.1s"}}>
-                {item.icon==="__BASS__"
-                  ? <BassIcon size={Math.round(32*(item.size||1))} glow={selectedId===item.id}/>
-                  : <span style={{filter:selectedId===item.id?"drop-shadow(0 0 8px #f59e0b)":"none",transition:"filter 0.15s"}}>{item.icon}</span>}
-              </div>
+              <StageItemIcon item={item} selected={selectedId===item.id} size={item.size||1}/>
               {editingId===item.id
                 ?<input autoFocus value={editLabel} onChange={e=>setEditLabel(e.target.value)} onBlur={commitEdit} onKeyDown={e=>e.key==="Enter"&&commitEdit()} onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
                     style={{background:"#0a0c10",border:"1px solid #f59e0b",color:"#f8fafc",borderRadius:"3px",padding:"1px 4px",fontSize:"10px",width:"72px",textAlign:"center",outline:"none",fontFamily:"inherit"}}/>
@@ -252,7 +294,7 @@ function StagePlot({plot,onChange}){
 // ── Mic Search Input ──────────────────────────────────────────────────────────
 const MIC_NAMES = MIC_OPTIONS.filter(m => m !== "" && typeof m === "string");
 
-function MicSearch({value, onChange}) {
+function MicSearch({value, onChange, onEnter}) {
   const [query, setQuery] = useState(value || "");
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
@@ -277,7 +319,7 @@ function MicSearch({value, onChange}) {
     if (!open) { if (e.key !== "Escape") setOpen(true); return; }
     if (e.key === "ArrowDown") { e.preventDefault(); setHighlighted(h => Math.min(h+1, filtered.length-1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setHighlighted(h => Math.max(h-1, 0)); }
-    else if (e.key === "Enter") { e.preventDefault(); if (filtered[highlighted]) commit(filtered[highlighted]); else commit(query); }
+    else if (e.key === "Enter") { e.preventDefault(); if (filtered[highlighted]) { commit(filtered[highlighted]); if(onEnter) setTimeout(onEnter,30); } else { commit(query); if(onEnter) setTimeout(onEnter,30); } }
     else if (e.key === "Escape") { setOpen(false); }
   };
 
@@ -309,6 +351,7 @@ function MicSearch({value, onChange}) {
             <div key={m} onMouseDown={e=>{e.preventDefault();commit(m);}}
               style={{padding:"6px 10px",fontSize:"12px",fontFamily:"monospace",cursor:"pointer",color: i===highlighted?"#f59e0b":"#e2e8f0",background: i===highlighted?"#1e2028":"transparent",transition:"background 0.1s"}}
               onMouseEnter={()=>setHighlighted(i)}>
+              {/* Bold the matching part */}
               {query.trim()===""
                 ? m
                 : (() => {
@@ -327,9 +370,28 @@ function MicSearch({value, onChange}) {
 // ── Patch Sheet ───────────────────────────────────────────────────────────────
 function PatchSheet({slot,onChange,numStageboxes,header}){
   const sbOptions=[...SB_COLORS.slice(0,numStageboxes).map(s=>s.key),"DIR"];
+  const tableRef=useRef(null);
   const updateRow=(id,field,val)=>onChange({...slot,patchRows:slot.patchRows.map(r=>r.id===id?{...r,[field]:val}:r)});
   const addRow=()=>onChange({...slot,patchRows:[...slot.patchRows,{id:uid(),channel:slot.patchRows.length+1,stagebox:"SB1",input:slot.patchRows.length+1,instrument:"",mic:"",stand:"",notes:""}]});
   const removeRow=(id)=>onChange({...slot,patchRows:slot.patchRows.filter(r=>r.id!==id)});
+  // Enter key jumps to next row same column
+  const handleCellEnter=(e,rowIdx,col)=>{
+    if(e.key!=="Enter")return;
+    e.preventDefault();
+    if(!tableRef.current)return;
+    const nextRow=tableRef.current.querySelectorAll("tr[data-row]")[rowIdx+1];
+    if(nextRow){
+      const target=nextRow.querySelector(`[data-col="${col}"]`);
+      if(target){target.focus();return;}
+    }
+    // last row — add new row then focus
+    addRow();
+    setTimeout(()=>{
+      const rows=tableRef.current.querySelectorAll("tr[data-row]");
+      const last=rows[rows.length-1];
+      if(last){const t=last.querySelector(`[data-col="${col}"]`);if(t)t.focus();}
+    },50);
+  };
 
   return(
     <div style={{padding:"14px",overflowX:"auto",flex:1}}>
@@ -349,7 +411,7 @@ function PatchSheet({slot,onChange,numStageboxes,header}){
           </div>
         );})}
       </div>
-      <table style={{width:"100%",borderCollapse:"collapse",minWidth:"760px"}}>
+      <table ref={tableRef} style={{width:"100%",borderCollapse:"collapse",minWidth:"760px"}}>
         <thead><tr>{["CH","Stagebox","Input","Instrument","Mic","Stand","Notes",""].map(h=>(
           <th key={h} style={{textAlign:"left",padding:"7px 8px",fontSize:"10px",letterSpacing:"0.12em",textTransform:"uppercase",color:"#f59e0b",borderBottom:"1px solid #f59e0b33",fontFamily:"monospace",fontWeight:"600"}}>{h}</th>
         ))}</tr></thead>
@@ -357,7 +419,7 @@ function PatchSheet({slot,onChange,numStageboxes,header}){
           {slot.patchRows.map((row,idx)=>{
             const sb=getSB(row.stagebox);
             return(
-              <tr key={row.id} style={{background:idx%2===0?"#111318":"#0d0f14",transition:"background 0.1s",borderLeft:`3px solid ${sb.color}`}}
+              <tr key={row.id} data-row={idx} style={{background:idx%2===0?"#111318":"#0d0f14",transition:"background 0.1s",borderLeft:`3px solid ${sb.color}`}}
                 onMouseEnter={e=>e.currentTarget.style.background="#1a1d26"}
                 onMouseLeave={e=>e.currentTarget.style.background=idx%2===0?"#111318":"#0d0f14"}>
                 <td style={{padding:"3px 8px",width:"40px"}}><div style={{fontFamily:"monospace",fontSize:"13px",fontWeight:"700",color:"#f59e0b",width:"30px",textAlign:"center"}}>{String(row.channel).padStart(2,"0")}</div></td>
@@ -368,8 +430,8 @@ function PatchSheet({slot,onChange,numStageboxes,header}){
                   </select>
                 </td>
                 <td style={{padding:"3px 6px",width:"58px"}}><input type="number" min="1" value={row.input} onChange={e=>updateRow(row.id,"input",e.target.value)} style={{...S.input,width:"48px",textAlign:"center"}}/></td>
-                <td style={{padding:"3px 6px"}}><input value={row.instrument} onChange={e=>updateRow(row.id,"instrument",e.target.value)} placeholder="Kick, Snare, Vox…" style={S.input}/></td>
-                <td style={{padding:"3px 6px",width:"160px"}}><MicSearch value={row.mic} onChange={val=>updateRow(row.id,"mic",val)}/></td>
+                <td style={{padding:"3px 6px"}}><input value={row.instrument} onChange={e=>updateRow(row.id,"instrument",e.target.value)} onKeyDown={e=>handleCellEnter(e,idx,"instrument")} placeholder="Kick, Snare, Vox…" style={S.input} data-col="instrument"/></td>
+                <td style={{padding:"3px 6px",width:"160px"}}><MicSearch value={row.mic} onChange={val=>updateRow(row.id,"mic",val)} onEnter={()=>{if(!tableRef.current)return;const nextRow=tableRef.current.querySelectorAll("tr[data-row]")[idx+1];if(nextRow){const t=nextRow.querySelector("[data-col=\"instrument\"]");if(t)t.focus();}}}/></td>
                 <td style={{padding:"3px 6px",width:"108px"}}><select value={row.stand} onChange={e=>updateRow(row.id,"stand",e.target.value)} style={{...S.input,cursor:"pointer"}}>{STAND_OPTIONS.map(s=><option key={s} value={s}>{s||"— stand —"}</option>)}</select></td>
                 <td style={{padding:"3px 6px"}}><input value={row.notes} onChange={e=>updateRow(row.id,"notes",e.target.value)} placeholder="Notes…" style={S.input}/></td>
                 <td style={{padding:"3px 6px",width:"28px"}}><button onClick={()=>removeRow(row.id)} style={{background:"none",border:"none",color:"#ef4444",cursor:"pointer",fontSize:"13px"}}>✕</button></td>
@@ -531,6 +593,151 @@ function NewProjectModal({onConfirm,onCancel}){
   );
 }
 
+
+// ── PDF Report Generator ──────────────────────────────────────────────────────
+function generatePDF(project){
+  const isFestival = project.mode==="festival";
+  const fd = project.festivalData;
+  const sbColors={SB1:"#f59e0b",SB2:"#22c55e",SB3:"#3b82f6",SB4:"#ef4444",SB5:"#888",DIR:"#a855f7"};
+
+  // Collect all slots with their labels
+  const sheets = isFestival
+    ? fd.days.flatMap(day=>day.slots.map(slot=>({
+        title:`${fd.festName}${fd.stageName?" · "+fd.stageName:""} — ${day.dayLabel}`,
+        bandName: slot.bandName||"(no name)",
+        rows: slot.patchRows,
+      })))
+    : [{title:project.name, bandName:project.singleSlot.bandName||"(no name)", rows:project.singleSlot.patchRows}];
+
+  const landscape = sheets.length > 1;
+
+  // ── Build per-day mic summary pages (festival only) ────────────────────────
+  const buildDaySummaryPages = () => {
+    if(!isFestival) return "";
+    return fd.days.map(day=>{
+      const slots = day.slots;
+      // All unique mic names used this day (excluding empty)
+      const allMics = [...new Set(
+        slots.flatMap(s=>s.patchRows.map(r=>r.mic).filter(m=>m&&m.trim()!==""))
+      )].sort();
+
+      // Per band: mic -> count
+      const bandMicCounts = slots.map(slot=>{
+        const counts={};
+        slot.patchRows.forEach(r=>{ if(r.mic&&r.mic.trim()) counts[r.mic]=(counts[r.mic]||0)+1; });
+        return counts;
+      });
+
+      // Day total per mic
+      const dayTotal={};
+      bandMicCounts.forEach(bc=>{ Object.entries(bc).forEach(([mic,n])=>{ dayTotal[mic]=(dayTotal[mic]||0)+n; }); });
+
+      const bandNames = slots.map((s,i)=>s.bandName||`Band ${i+1}`);
+
+      // Table header: MIC | Band1 | Band2 | ... | TOTAL
+      const headerCells = `<th style="min-width:130px">MIC</th>${bandNames.map(n=>`<th>${n}</th>`).join("")}<th style="background:#0f172a;color:#f59e0b">TOTAL</th>`;
+
+      // One row per mic
+      const micRows = allMics.map((mic,i)=>{
+        const cells = bandMicCounts.map(bc=>`<td style="text-align:center">${bc[mic]||""}</td>`).join("");
+        const total = dayTotal[mic]||0;
+        return `<tr style="${i%2===0?"":"background:#f8fafc"}">
+          <td style="font-weight:700;font-family:monospace">${mic}</td>
+          ${cells}
+          <td style="text-align:center;font-weight:800;color:#1a1a2e;background:#fef9ee">${total}</td>
+        </tr>`;
+      }).join("");
+
+      // TOTAL row (sum per band)
+      const bandTotals = bandMicCounts.map(bc=>Object.values(bc).reduce((a,b)=>a+b,0));
+      const grandTotal = bandTotals.reduce((a,b)=>a+b,0);
+      const totalRow = `<tr style="background:#1a1a2e;color:#f59e0b;font-weight:800">
+        <td>TOTAL</td>
+        ${bandTotals.map(t=>`<td style="text-align:center">${t}</td>`).join("")}
+        <td style="text-align:center;color:#f59e0b">${grandTotal}</td>
+      </tr>`;
+
+      return `
+        <div style="page-break-before:always;padding:8mm 0 0 0;">
+          <div style="font-size:14px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;color:#1a1a2e;margin-bottom:2px;">
+            🎤 Mic Summary — ${day.dayLabel}
+          </div>
+          <div style="font-size:9px;color:#64748b;letter-spacing:0.1em;margin-bottom:10px;">
+            ${fd.festName}${fd.stageName?" · "+fd.stageName:""} · ${slots.length} band${slots.length!==1?"s":""}
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:10px;">
+            <thead><tr style="background:#1a1a2e;">${headerCells}</tr></thead>
+            <tbody>${micRows}${totalRow}</tbody>
+          </table>
+        </div>`;
+    }).join("");
+  };
+
+  const tableStyle = `
+    table{width:100%;border-collapse:collapse;font-size:${landscape?"9px":"11px"};}
+    th{background:#1a1a2e;color:#f59e0b;padding:5px 6px;text-align:left;font-size:${landscape?"8px":"10px"};letter-spacing:0.08em;border-bottom:2px solid #f59e0b55;}
+    td{padding:4px 6px;border-bottom:1px solid #e5e7eb;}
+    tr:nth-child(even) td{background:#f8fafc;}
+    .ch{font-weight:800;color:#1a1a2e;font-family:monospace;}
+    .sb-pill{display:inline-block;padding:1px 6px;border-radius:8px;font-size:${landscape?"7px":"9px"};font-weight:700;font-family:monospace;}
+    .sheet{${landscape?"display:inline-block;vertical-align:top;width:calc(100% / "+sheets.length+" - 8px);margin:4px;":"margin-bottom:30px;"}}
+    .band-title{font-size:${landscape?"12px":"16px"};font-weight:800;margin:4px 0 2px;color:#1a1a2e;}
+    .header{font-size:${landscape?"8px":"10px"};color:#64748b;margin-bottom:4px;letter-spacing:0.1em;}
+    .page-title{font-size:14px;font-weight:800;color:#1a1a2e;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:2px;}
+    .subtitle{font-size:9px;color:#64748b;letter-spacing:0.1em;margin-bottom:${landscape?"6px":"14px"};}
+    body{margin:${landscape?"8px":"16px"};font-family:'Segoe UI',system-ui,sans-serif;background:#fff;color:#1a1a2e;}
+    @media print{body{margin:6mm;}@page{size:${landscape?"A3 landscape":"A4 portrait"};margin:10mm;}}
+  `;
+
+  const renderRows = (rows) => rows.map(r=>{
+    const sbColor = sbColors[r.stagebox]||"#888";
+    return `<tr>
+      <td class="ch">${String(r.channel).padStart(2,"0")}</td>
+      <td><span class="sb-pill" style="background:${sbColor}22;color:${sbColor};border:1px solid ${sbColor}88">${r.stagebox}</span></td>
+      <td>${r.input}</td>
+      <td>${r.instrument||""}</td>
+      <td>${r.mic||""}</td>
+      <td>${r.stand||""}</td>
+      <td>${r.notes||""}</td>
+    </tr>`;
+  }).join("");
+
+  const sheetsHTML = sheets.map(s=>`
+    <div class="sheet">
+      <div class="header">${s.title}</div>
+      <div class="band-title">${s.bandName}</div>
+      <table>
+        <thead><tr><th>CH</th><th>SB</th><th>IN</th><th>INSTRUMENT</th><th>MIC</th><th>STAND</th><th>NOTES</th></tr></thead>
+        <tbody>${renderRows(s.rows)}</tbody>
+      </table>
+    </div>
+  `).join("");
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>${project.name} — Stage Patch Pro</title>
+    <style>${tableStyle}</style></head>
+    <body>
+      <div class="page-title">🎚️ ${project.name}</div>
+      <div class="subtitle">STAGE PATCH PRO · Generated ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
+      <div style="${landscape?"display:flex;flex-wrap:nowrap;gap:4px;align-items:flex-start;":""}">
+        ${sheetsHTML}
+      </div>
+      ${buildDaySummaryPages()}
+    </body></html>`;
+
+  // Use Blob URL — avoids popup blockers
+  const blob = new Blob([html], {type:"text/html"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+}
+
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App(){
   const[screen,setScreen]=useState("home");
@@ -643,6 +850,11 @@ export default function App(){
         <button onClick={()=>doSaveNow(project)}
           style={{background:"none",border:`1px solid ${saveColor}44`,color:saveColor,padding:"4px 10px",borderRadius:"5px",cursor:"pointer",fontSize:"10px",letterSpacing:"0.08em",transition:"all 0.2s"}}>
           {saveLabel}
+        </button>
+        <button onClick={()=>generatePDF(project)}
+          style={{background:"none",border:"1px solid #3b82f644",color:"#3b82f6",padding:"4px 10px",borderRadius:"5px",cursor:"pointer",fontSize:"10px",letterSpacing:"0.08em",transition:"all 0.2s"}}
+          title="Export PDF report">
+          📄 PDF
         </button>
         <div style={{display:"flex",gap:"4px"}}>
           {["patch","stage"].map(tab=>(
