@@ -26,7 +26,7 @@ const MIC_OPTIONS=[
   {divider:true,label:"── MILAB ──"},
   "Milab VM44",
   {divider:true,label:"── NEUMANN ──"},
-  "KM140","KMS105","KM188","TLM103",
+  "KM140","KMS105","KM184","TLM103",
   {divider:true,label:"── SAMSON ──"},
   "Samson CO1","Samson CO2","Samson SP01",
   {divider:true,label:"── SE ELECTRONICS ──"},
