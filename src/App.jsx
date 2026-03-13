@@ -735,16 +735,22 @@ function generatePDF(project){
     </body></html>`;
 
   // Use Blob URL — avoids popup blockers
+  const w = window.open("", "_blank");
+if(w){
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+} else {
   const blob = new Blob([html], {type:"text/html"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener";
+  a.download = project.name + "-patch.html";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+}
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────────
