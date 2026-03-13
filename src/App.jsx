@@ -601,15 +601,18 @@ function generatePDF(project){
   const sbColors={SB1:"#f59e0b",SB2:"#22c55e",SB3:"#3b82f6",SB4:"#ef4444",SB5:"#888",DIR:"#a855f7"};
 
   // Collect all slots with their labels
-  const sheets = isFestival
-    ? fd.days.flatMap(day=>day.slots.map(slot=>({
-        title:`${fd.festName}${fd.stageName?" · "+fd.stageName:""} — ${day.dayLabel}`,
-        bandName: slot.bandName||"(no name)",
-        rows: slot.patchRows,
-      })))
-    : [{title:project.name, bandName:project.singleSlot.bandName||"(no name)", rows:project.singleSlot.patchRows}];
+  const days = isFestival
+    ? fd.days.map(day=>({
+        dayLabel: day.dayLabel,
+        slots: day.slots.map(slot=>({
+          title:`${fd.festName}${fd.stageName?" · "+fd.stageName:""} — ${day.dayLabel}`,
+          bandName: slot.bandName||"(no name)",
+          rows: slot.patchRows,
+        }))
+      }))
+    : [{dayLabel:"", slots:[{title:project.name, bandName:project.singleSlot.bandName||"(no name)", rows:project.singleSlot.patchRows}]}];
 
-  const landscape = sheets.length > 1;
+  const landscape = true;
 
   // ── Build per-day mic summary pages (festival only) ────────────────────────
   const buildDaySummaryPages = () => {
@@ -702,14 +705,22 @@ function generatePDF(project){
     </tr>`;
   }).join("");
 
-  const sheetsHTML = sheets.map(s=>`
-    <div class="sheet">
-      <div class="header">${s.title}</div>
-      <div class="band-title">${s.bandName}</div>
-      <table>
-        <thead><tr><th>CH</th><th>SB</th><th>IN</th><th>INSTRUMENT</th><th>MIC</th><th>STAND</th><th>NOTES</th></tr></thead>
-        <tbody>${renderRows(s.rows)}</tbody>
-      </table>
+  const sheetsHTML = days.map((day, di)=>`
+    <div style="${di>0?"page-break-before:always;":""}padding-top:${di>0?"8mm":"0"}">
+      <div class="page-title">🎚️ ${project.name}${day.dayLabel?" — "+day.dayLabel:""}</div>
+      <div class="subtitle">STAGE PATCH PRO · Generated ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
+      <hr style="border:none;border-top:2px solid #f59e0b33;margin:4px 0 8px"/>
+      <div style="display:flex;gap:6px;align-items:flex-start;">
+        ${day.slots.map(s=>`
+          <div style="flex:1;min-width:0;">
+            <div class="header">${s.title}</div>
+            <div class="band-title">${s.bandName}</div>
+            <table>
+              <thead><tr><th>CH</th><th>SB</th><th>IN</th><th>INSTRUMENT</th><th>MIC</th><th>STAND</th><th>NOTES</th></tr></thead>
+              <tbody>${renderRows(s.rows)}</tbody>
+            </table>
+          </div>`).join("")}
+      </div>
     </div>
   `).join("");
 
@@ -719,9 +730,7 @@ function generatePDF(project){
     <body>
       <div class="page-title">🎚️ ${project.name}</div>
       <div class="subtitle">STAGE PATCH PRO · Generated ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
-      <div style="${landscape?"display:flex;flex-wrap:nowrap;gap:4px;align-items:flex-start;":""}">
-        ${sheetsHTML}
-      </div>
+      ${sheetsHTML}
       ${buildDaySummaryPages()}
     </body></html>`;
 
